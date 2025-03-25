@@ -1,8 +1,8 @@
 # .github/workflows/generate-docs.yml
 name: Generate Project Docs
-
-on: 
-  push:      # triggers on every push to any branch
+on: push
+permissions:
+  contents: write
 
 jobs:
   generate-docs:
