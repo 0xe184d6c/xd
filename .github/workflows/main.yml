@@ -11,53 +11,93 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for git diff to work properly
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
+          echo "--- Installing required tools ---"
+          sudo apt-get update -qq
           sudo apt-get install -y jq tree
+          echo "✓ Installed jq and tree"
 
       - name: Generate and Archive Docs
         run: |
+          echo "=== STARTING DOCUMENTATION GENERATION ==="
+          echo "Creating directory structure..."
           mkdir -p docs/generated/archive
+          echo "✓ Created docs/generated/archive"
+
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          
-          # Generate repository tree (excluding node_modules, .git, .cache)
+          echo "Archive timestamp: $TIMESTAMP"
+
+          # Generate repository tree
+          echo "Generating directory tree..."
           if command -v tree &> /dev/null; then
+            echo "Using tree command (excluded: node_modules, .git, .cache)"
             tree -I 'node_modules|.git|.cache' -a --noreport > docs/generated/00_tree.txt || \
-              find . -type d ! -path './node_modules*' ! -path './.git*' ! -path './.cache*' \
-                | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/" > docs/generated/00_tree.txt
-          else
+              echo "⚠️ Tree command failed, using fallback"
+          fi
+          
+          if [ ! -s docs/generated/00_tree.txt ]; then
+            echo "Using find command fallback"
             find . -type d ! -path './node_modules*' ! -path './.git*' ! -path './.cache*' \
               | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/" > docs/generated/00_tree.txt
           fi
+          echo "✓ Saved tree structure (00_tree.txt)"
 
-          # Generate flat file directory (excludes node_modules, .git, .cache)
+          # Generate flat file list
+          echo "Generating flat file list..."
           find "$(pwd)" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/.cache/*" \
             | sed 's|/home/runner/workspace/||' > docs/generated/01_flat_dir.txt
+          echo "✓ Saved file list (01_flat_dir.txt)"
 
-          # Record dependencies from package.json
+          # Handle dependencies
+          echo "Checking project dependencies..."
           if [ -f package.json ]; then
+            echo "Found package.json"
             jq -r '.dependencies' package.json > docs/generated/dependencies.txt 2>/dev/null || \
+              echo "⚠️ jq failed, using grep fallback" && \
               grep '"dependencies"' package.json | awk -F: '{print $2}' > docs/generated/dependencies.txt
           else
             echo "No package.json found" > docs/generated/dependencies.txt
           fi
+
           [[ -f package-lock.json ]] && echo "package-lock.json exists" >> docs/generated/dependencies.txt
           [[ -f yarn.lock ]] && echo "yarn.lock exists" >> docs/generated/dependencies.txt
+          echo "✓ Saved dependency info"
 
-          # Archive the generated files with a timestamp
+          # Archive files
+          echo "Archiving generated files..."
           cp docs/generated/00_tree.txt docs/generated/archive/00_tree_${TIMESTAMP}.txt
           cp docs/generated/01_flat_dir.txt docs/generated/archive/01_flat_dir_${TIMESTAMP}.txt
           cp docs/generated/dependencies.txt docs/generated/archive/dependencies_${TIMESTAMP}.txt
+          echo "✓ Archived files with timestamp $TIMESTAMP"
+
+          echo "=== DOCUMENTATION GENERATION COMPLETE ==="
 
       - name: Commit generated docs if changed
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+          echo "=== CHECKING FOR CHANGES ==="
           git add docs/generated/*
-          git diff --quiet --exit-code docs/generated/ || git commit -m "chore: update docs"
-      
+          
+          if git diff --quiet --cached --exit-code; then
+            echo "✅ No changes detected - skipping commit"
+          else
+            echo "📝 Changes detected - creating commit"
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git commit -m "chore: auto-update docs [skip ci]"
+            echo "✓ Commit created"
+          fi
+
       - name: Push changes
         if: always()
-        run: git push
+        run: |
+          echo "=== PUSHING CHANGES ==="
+          if git push origin; then
+            echo "🚀 Successfully pushed changes"
+          else
+            echo "⚠️ Push failed (might be no changes or network issue)"
+          fi
+          echo "=== WORKFLOW COMPLETE ==="
