@@ -1,10 +1,8 @@
 # .github/workflows/generate-docs.yml
 name: Generate Project Docs
 
-on:
-  push:
-    branches:
-      - main
+on: 
+  push:      # triggers on every push to any branch
 
 jobs:
   generate-docs:
@@ -12,30 +10,46 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Generate docs inline
+      - name: Generate project docs
         run: |
-          mkdir -p docs
+          mkdir -p docs/generated
+          # Generate tree structure
           if command -v tree &> /dev/null; then
-            tree -I 'node_modules|.git|.cache' -a --noreport > docs/00_tree.txt
+            tree -I 'node_modules|.git|.cache' -a --noreport > docs/generated/00_tree.txt
           else
-            find . -type d ! -path './node_modules*' ! -path './.git*' ! -path './.cache*' | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/" > docs/00_tree.txt
+            find . -type d ! -path './node_modules*' ! -path './.git*' ! -path './.cache*' \
+              | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/" \
+              > docs/generated/00_tree.txt
           fi
-          find "$(pwd)" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/.cache/*" | sed 's|/home/runner/workspace/||' > docs/01_flat_dir.txt
-          jq -r '.dependencies' package.json > docs/dependencies.txt 2>/dev/null || { grep '"dependencies"' package.json | awk -F: '{print $2}' > docs/dependencies.txt; }
-          [[ -f package-lock.json ]] && echo "package-lock.json exists" >> docs/dependencies.txt
-          [[ -f yarn.lock ]] && echo "yarn.lock exists" >> docs/dependencies.txt
+          # Generate flat directory listing
+          find "$(pwd)" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/.cache/*" \
+            | sed 's|/home/runner/workspace/||' \
+            > docs/generated/01_flat_dir.txt
+          # Record dependencies from package.json
+          jq -r '.dependencies' package.json > docs/generated/dependencies.txt 2>/dev/null || {
+            grep '"dependencies"' package.json \
+              | awk -F: '{print $2}' \
+              > docs/generated/dependencies.txt
+          }
+          [[ -f package-lock.json ]] && echo "package-lock.json exists" >> docs/generated/dependencies.txt
+          [[ -f yarn.lock ]] && echo "yarn.lock exists" >> docs/generated/dependencies.txt
 
-      - name: Commit changes if updated
+      - name: Commit generated docs if updated
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add docs/00_tree.txt docs/01_flat_dir.txt docs/dependencies.txt
-          git diff-index --quiet HEAD || (git commit -m "chore: update generated docs" && git push)
+          git add docs/generated/*
+          git diff-index --quiet HEAD || git commit -m "chore: update generated docs"
+      - name: Push changes
+        if: always()
+        run: |
+          # Only push if commits were actually made
+          if [ "$(git log -1 --pretty=%B)" = "chore: update generated docs" ]; then
+            git push
+          fi
