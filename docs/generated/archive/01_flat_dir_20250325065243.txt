@@ -1,0 +1,15 @@
+/home/runner/work/xd/xd/contracts/MyToken.sol
+/home/runner/work/xd/xd/hardhat.config.js
+/home/runner/work/xd/xd/README.md
+/home/runner/work/xd/xd/scripts/deploy.js
+/home/runner/work/xd/xd/scripts/generate_project_files.sh
+/home/runner/work/xd/xd/.github/workflows/main.yml
+/home/runner/work/xd/xd/test/MyToken.test.js
+/home/runner/work/xd/xd/docs/api_server/api_endpoints.txt
+/home/runner/work/xd/xd/docs/api_server/arch.txt
+/home/runner/work/xd/xd/docs/generated/00_tree.txt
+/home/runner/work/xd/xd/docs/generated/01_flat_dir.txt
+/home/runner/work/xd/xd/docs/cmds.txt
+/home/runner/work/xd/xd/docs/data_flow.mermaid
+/home/runner/work/xd/xd/docs/01_archive/00_README.txt
+/home/runner/work/xd/xd/docs/01_archive/00_tree.txt

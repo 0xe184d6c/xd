@@ -1,0 +1,25 @@
+.
+├── .github
+│   └── workflows
+│       └── main.yml
+├── README.md
+├── contracts
+│   └── MyToken.sol
+├── docs
+│   ├── 01_archive
+│   │   ├── 00_README.txt
+│   │   └── 00_tree.txt
+│   ├── api_server
+│   │   ├── api_endpoints.txt
+│   │   └── arch.txt
+│   ├── cmds.txt
+│   ├── data_flow.mermaid
+│   └── generated
+│       ├── 00_tree.txt
+│       └── archive
+├── hardhat.config.js
+├── scripts
+│   ├── deploy.js
+│   └── generate_project_files.sh
+└── test
+    └── MyToken.test.js
