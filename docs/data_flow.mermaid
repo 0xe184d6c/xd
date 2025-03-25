@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant D as Dev
+    participant CI as CI/CD
+    participant A as API
+    participant B as BC
+    participant N as Notif
+
+    D->>CI: push
+    CI->>A: trigger
+    A->>B: deploy
+    B-->>A: addr
+    A->>N: notify
+    N-->>A: ack

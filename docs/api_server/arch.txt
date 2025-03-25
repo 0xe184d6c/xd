@@ -1,0 +1,7 @@
+api/
+├── src/
+│   ├── deploy.js       # Hardhat/Foundry deployment logic
+│   ├── endpoints.js    # Express.js routes
+│   └── utils.js        # Blockchain RPC helpers
+├── package.json
+└── .env                # Store keys, RPC URLs, etc.
