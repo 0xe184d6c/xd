@@ -12,92 +12,87 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Needed for git diff to work properly
+          fetch-depth: 0
 
-      - name: Install system dependencies
+      - name: Install dependencies
         run: |
-          echo "--- Installing required tools ---"
+          echo "Installing dependencies"
           sudo apt-get update -qq
           sudo apt-get install -y jq tree
-          echo "✓ Installed jq and tree"
+          echo "Dependencies installed"
+
+      - name: Verify working directory
+        run: |
+          pwd
+          ls -la
 
       - name: Generate and Archive Docs
         run: |
-          echo "=== STARTING DOCUMENTATION GENERATION ==="
-          echo "Creating directory structure..."
+          set -euo pipefail
+          echo "Starting documentation generation"
           mkdir -p docs/generated/archive
-          echo "✓ Created docs/generated/archive"
+          echo "Directory structure created"
 
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          echo "Archive timestamp: $TIMESTAMP"
+          echo "Timestamp: $TIMESTAMP"
 
-          # Generate repository tree
-          echo "Generating directory tree..."
+          echo "Generating directory tree"
           if command -v tree &> /dev/null; then
-            echo "Using tree command (excluded: node_modules, .git, .cache)"
-            tree -I 'node_modules|.git|.cache' -a --noreport > docs/generated/00_tree.txt || \
-              echo "⚠️ Tree command failed, using fallback"
+            tree -I 'node_modules|.git|.cache' -a --noreport > docs/generated/00_tree.txt || echo "Tree command failed"
           fi
-          
           if [ ! -s docs/generated/00_tree.txt ]; then
-            echo "Using find command fallback"
             find . -type d ! -path './node_modules*' ! -path './.git*' ! -path './.cache*' \
               | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/" > docs/generated/00_tree.txt
           fi
-          echo "✓ Saved tree structure (00_tree.txt)"
+          echo "Directory tree saved"
 
-          # Generate flat file list
-          echo "Generating flat file list..."
+          echo "Generating flat file list"
           find "$(pwd)" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/.cache/*" \
             | sed 's|/home/runner/workspace/||' > docs/generated/01_flat_dir.txt
-          echo "✓ Saved file list (01_flat_dir.txt)"
+          echo "Flat file list saved"
 
-          # Handle dependencies
-          echo "Checking project dependencies..."
+          echo "Checking project dependencies"
           if [ -f package.json ]; then
-            echo "Found package.json"
             jq -r '.dependencies' package.json > docs/generated/dependencies.txt 2>/dev/null || \
-              echo "⚠️ jq failed, using grep fallback" && \
-              grep '"dependencies"' package.json | awk -F: '{print $2}' > docs/generated/dependencies.txt
+              (echo "jq failed, using fallback" && grep '"dependencies"' package.json | awk -F: '{print $2}' > docs/generated/dependencies.txt)
           else
             echo "No package.json found" > docs/generated/dependencies.txt
           fi
+          if [ -f package-lock.json ]; then
+            echo "package-lock.json exists" >> docs/generated/dependencies.txt
+          fi
+          if [ -f yarn.lock ]; then
+            echo "yarn.lock exists" >> docs/generated/dependencies.txt
+          fi
+          echo "Dependency info saved"
 
-          [[ -f package-lock.json ]] && echo "package-lock.json exists" >> docs/generated/dependencies.txt
-          [[ -f yarn.lock ]] && echo "yarn.lock exists" >> docs/generated/dependencies.txt
-          echo "✓ Saved dependency info"
-
-          # Archive files
-          echo "Archiving generated files..."
+          echo "Archiving files"
           cp docs/generated/00_tree.txt docs/generated/archive/00_tree_${TIMESTAMP}.txt
           cp docs/generated/01_flat_dir.txt docs/generated/archive/01_flat_dir_${TIMESTAMP}.txt
           cp docs/generated/dependencies.txt docs/generated/archive/dependencies_${TIMESTAMP}.txt
-          echo "✓ Archived files with timestamp $TIMESTAMP"
+          echo "Files archived"
 
-          echo "=== DOCUMENTATION GENERATION COMPLETE ==="
+          echo "Documentation generation complete"
 
       - name: Commit generated docs if changed
         run: |
-          echo "=== CHECKING FOR CHANGES ==="
+          echo "Git status before commit"
+          git status
           git add docs/generated/*
-          
-          if git diff --quiet --cached --exit-code; then
-            echo "✅ No changes detected - skipping commit"
-          else
-            echo "📝 Changes detected - creating commit"
+          echo "Changes to be committed:"
+          git diff --cached --name-status
+          if ! git diff --quiet --cached; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git commit -m "chore: auto-update docs [skip ci]"
-            echo "✓ Commit created"
+            echo "Commit created"
+          else
+            echo "No changes to commit"
           fi
 
       - name: Push changes
         if: always()
         run: |
-          echo "=== PUSHING CHANGES ==="
-          if git push origin; then
-            echo "🚀 Successfully pushed changes"
-          else
-            echo "⚠️ Push failed (might be no changes or network issue)"
-          fi
-          echo "=== WORKFLOW COMPLETE ==="
+          git pull --ff-only
+          git push origin
+          echo "Push complete"
