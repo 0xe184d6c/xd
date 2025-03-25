@@ -9,43 +9,55 @@ jobs:
   generate-docs:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install dependencies (jq, tree)
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y jq tree
 
-      - name: Generate docs
+      - name: Generate and Archive Docs
         run: |
-          mkdir -p docs/generated
+          mkdir -p docs/generated/archive
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          
+          # Generate repository tree (excluding node_modules, .git, .cache)
           if command -v tree &> /dev/null; then
-            tree -I 'node_modules|.git|.cache' -a --noreport > docs/generated/00_tree.txt
+            tree -I 'node_modules|.git|.cache' -a --noreport > docs/generated/00_tree.txt || \
+              find . -type d ! -path './node_modules*' ! -path './.git*' ! -path './.cache*' \
+                | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/" > docs/generated/00_tree.txt
           else
             find . -type d ! -path './node_modules*' ! -path './.git*' ! -path './.cache*' \
-              | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/" \
-              > docs/generated/00_tree.txt
+              | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/" > docs/generated/00_tree.txt
           fi
 
+          # Generate flat file directory (excludes node_modules, .git, .cache)
           find "$(pwd)" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/.cache/*" \
-            | sed 's|/home/runner/workspace/||' \
-            > docs/generated/01_flat_dir.txt
+            | sed 's|/home/runner/workspace/||' > docs/generated/01_flat_dir.txt
 
-          (jq -r '.dependencies' package.json || \
-           grep '"dependencies"' package.json | awk -F: '{print $2}') \
-            > docs/generated/dependencies.txt 2>/dev/null
-
+          # Record dependencies from package.json
+          if [ -f package.json ]; then
+            jq -r '.dependencies' package.json > docs/generated/dependencies.txt 2>/dev/null || \
+              grep '"dependencies"' package.json | awk -F: '{print $2}' > docs/generated/dependencies.txt
+          else
+            echo "No package.json found" > docs/generated/dependencies.txt
+          fi
           [[ -f package-lock.json ]] && echo "package-lock.json exists" >> docs/generated/dependencies.txt
           [[ -f yarn.lock ]] && echo "yarn.lock exists" >> docs/generated/dependencies.txt
 
-      - name: Commit changes
+          # Archive the generated files with a timestamp
+          cp docs/generated/00_tree.txt docs/generated/archive/00_tree_${TIMESTAMP}.txt
+          cp docs/generated/01_flat_dir.txt docs/generated/archive/01_flat_dir_${TIMESTAMP}.txt
+          cp docs/generated/dependencies.txt docs/generated/archive/dependencies_${TIMESTAMP}.txt
+
+      - name: Commit generated docs if changed
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add docs/generated/*
           git diff --quiet --exit-code docs/generated/ || git commit -m "chore: update docs"
-
+      
       - name: Push changes
         if: always()
         run: git push

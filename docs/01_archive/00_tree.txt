@@ -36,3 +36,17 @@ xd/
 ├── package.json
 ├── package-lock.json   # or yarn.lock
 └── README.md
+
+
+xd/
+├── .github/
+│   └── workflows/
+│       └── main.yml
+├── contracts/
+├── docs/
+├── scripts/
+├── test/
+├── install-deps.sh  # file to install dependencies
+├── package.json
+├── package-lock.json
+└── README.md
