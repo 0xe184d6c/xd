@@ -48,7 +48,7 @@ jobs:
 
           echo "Generating flat file list"
           find "$(pwd)" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/.cache/*" \
-            | sed 's|/home/runner/workspace/||' > docs/generated/01_flat_dir.txt
+            | sed "s|$(pwd)/||" > docs/generated/01_flat_dir.txt
           echo "Flat file list saved"
 
           echo "Checking project dependencies"
