@@ -1,4 +1,3 @@
-# .github/workflows/main.yml
 name: Project Docs
 
 on: [push]
@@ -13,10 +12,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+      - name: Install dependencies (jq, tree)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq tree
 
       - name: Generate docs
         run: |
@@ -46,7 +45,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git add docs/generated/*
           git diff --quiet --exit-code docs/generated/ || git commit -m "chore: update docs"
+
       - name: Push changes
         if: always()
-        run: |
-          git push
+        run: git push
