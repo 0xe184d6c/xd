@@ -1,0 +1,38 @@
+my-blockchain-app/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml       # CI/CD pipeline
+├── contracts/
+│   ├── MyToken.sol         # Dummy ERC-20 token contract
+│   └── MyNFT.sol           # Dummy NFT contract
+├── scripts/
+│   └── deploy.js           # Hardhat deployment script
+├── test/
+│   └── MyToken.test.js     # Test for the ERC-20 contract
+├── hardhat.config.js       # Hardhat configuration
+└── README.md
+
+
+xd/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+├── .git/
+│   └── hooks/
+│       └── pre-commit
+├── contracts/
+│   ├── MyToken.sol
+│   └── MyNFT.sol
+├── docs/           # auto-generated files
+│   ├── 00_tree.txt
+│   ├── 01_flat_dir.txt
+│   └── dependencies.txt
+├── scripts/
+│   ├── deploy.js
+│   └── generate_project_files.sh
+├── test/
+│   └── MyToken.test.js
+├── hardhat.config.js
+├── package.json
+├── package-lock.json   # or yarn.lock
+└── README.md

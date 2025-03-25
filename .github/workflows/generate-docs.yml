@@ -1,0 +1,41 @@
+# .github/workflows/generate-docs.yml
+name: Generate Project Docs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate docs inline
+        run: |
+          mkdir -p docs
+          if command -v tree &> /dev/null; then
+            tree -I 'node_modules|.git|.cache' -a --noreport > docs/00_tree.txt
+          else
+            find . -type d ! -path './node_modules*' ! -path './.git*' ! -path './.cache*' | sed -e "s/[^-][^\/]*\//  |/g" -e "s/|\([^ ]\)/|-\1/" > docs/00_tree.txt
+          fi
+          find "$(pwd)" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/.cache/*" | sed 's|/home/runner/workspace/||' > docs/01_flat_dir.txt
+          jq -r '.dependencies' package.json > docs/dependencies.txt 2>/dev/null || { grep '"dependencies"' package.json | awk -F: '{print $2}' > docs/dependencies.txt; }
+          [[ -f package-lock.json ]] && echo "package-lock.json exists" >> docs/dependencies.txt
+          [[ -f yarn.lock ]] && echo "yarn.lock exists" >> docs/dependencies.txt
+
+      - name: Commit changes if updated
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/00_tree.txt docs/01_flat_dir.txt docs/dependencies.txt
+          git diff-index --quiet HEAD || (git commit -m "chore: update generated docs" && git push)

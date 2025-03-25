@@ -1,0 +1,16 @@
+find "$(pwd)" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/.cache/*" | sed 's|/home/runner/workspace/||'
+
+find "$(pwd)" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/.cache/*"
+
+
+
+mkdir -p .git/hooks
+cat << 'EOF' > .git/hooks/pre-commit
+#!/bin/bash
+./scripts/generate_project_files.sh
+git add docs/00_tree.txt docs/01_flat_dir.txt docs/dependencies.txt
+EOF
+chmod +x .git/hooks/pre-commit
+
+
+rm -f .git/hooks/pre-commit
