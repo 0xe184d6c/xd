@@ -1,0 +1,5 @@
+Endpoint	Purpose
+POST /deploy	Deploy a contract to a specified network (testnet/mainnet).
+POST /execute/:contract	Call a function on a deployed contract (e.g., mint, transfer).
+GET /status/:contract	Check the status of a contract (e.g., balance, owner).
+GET /tx/:txHash	Fetch transaction details (success/failure, gas used).
